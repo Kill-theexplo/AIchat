@@ -1,0 +1,368 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Roleplay</title>
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#161320">
+<link rel="icon" href="icon.svg">
+<style>
+  :root{
+    --bg:#161320;
+    --panel:#1f1b2e;
+    --panel-2:#2a2440;
+    --accent:#b98cff;
+    --accent-dim:#7a5fb0;
+    --text:#efeaf7;
+    --text-dim:#a79cc4;
+    --bubble-user:#3a3160;
+    --bubble-model:#241f38;
+    --danger:#e0668a;
+  }
+  *{box-sizing:border-box;}
+  html,body{height:100%;}
+  body{
+    margin:0;
+    background:var(--bg);
+    color:var(--text);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+    display:flex;
+    flex-direction:column;
+    overflow:hidden;
+  }
+  header{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    padding:calc(env(safe-area-inset-top,0px) + 12px) 16px 12px;
+    background:var(--panel);
+    border-bottom:1px solid #33304a;
+    flex-shrink:0;
+  }
+  header h1{
+    font-size:16px;
+    margin:0;
+    letter-spacing:.03em;
+    color:var(--accent);
+    font-weight:600;
+  }
+  header .sub{font-size:11px;color:var(--text-dim);}
+  header button{
+    background:none;
+    border:1px solid #443f60;
+    color:var(--text-dim);
+    border-radius:8px;
+    padding:6px 10px;
+    font-size:13px;
+  }
+  #chat{
+    flex:1;
+    overflow-y:auto;
+    padding:16px;
+    display:flex;
+    flex-direction:column;
+    gap:10px;
+  }
+  .msg{
+    max-width:82%;
+    padding:10px 13px;
+    border-radius:14px;
+    font-size:15px;
+    line-height:1.4;
+    white-space:pre-wrap;
+  }
+  .msg.user{
+    align-self:flex-end;
+    background:var(--bubble-user);
+    border-bottom-right-radius:4px;
+  }
+  .msg.model{
+    align-self:flex-start;
+    background:var(--bubble-model);
+    border-bottom-left-radius:4px;
+  }
+  .msg.error{
+    align-self:center;
+    background:transparent;
+    border:1px solid var(--danger);
+    color:var(--danger);
+    font-size:13px;
+  }
+  .msg.pending{color:var(--text-dim);font-style:italic;}
+  #empty{
+    margin:auto;
+    text-align:center;
+    color:var(--text-dim);
+    font-size:14px;
+    padding:0 30px;
+  }
+  form#composer{
+    display:flex;
+    gap:8px;
+    padding:10px;
+    padding-bottom:calc(env(safe-area-inset-bottom,0px) + 10px);
+    background:var(--panel);
+    border-top:1px solid #33304a;
+    flex-shrink:0;
+  }
+  #input{
+    flex:1;
+    resize:none;
+    border-radius:20px;
+    border:1px solid #443f60;
+    background:var(--panel-2);
+    color:var(--text);
+    padding:10px 16px;
+    font-size:15px;
+    max-height:120px;
+  }
+  #send{
+    border:none;
+    background:var(--accent);
+    color:#1a1428;
+    font-weight:700;
+    border-radius:20px;
+    padding:0 18px;
+    font-size:15px;
+  }
+  #send:disabled{opacity:.5;}
+  dialog{
+    border:none;
+    border-radius:16px;
+    background:var(--panel);
+    color:var(--text);
+    width:min(440px,92vw);
+    padding:0;
+  }
+  dialog::backdrop{background:rgba(0,0,0,.6);}
+  .dlg-body{padding:20px;display:flex;flex-direction:column;gap:14px;}
+  .dlg-body h2{margin:0;font-size:17px;color:var(--accent);}
+  label{font-size:12px;color:var(--text-dim);display:block;margin-bottom:5px;}
+  input[type=text],input[type=password],textarea,select{
+    width:100%;
+    background:var(--panel-2);
+    border:1px solid #443f60;
+    color:var(--text);
+    border-radius:8px;
+    padding:9px 10px;
+    font-size:14px;
+    font-family:inherit;
+  }
+  textarea{resize:vertical;min-height:70px;}
+  .row{display:flex;gap:10px;}
+  .row > div{flex:1;}
+  .dlg-actions{display:flex;justify-content:flex-end;gap:8px;margin-top:4px;}
+  .dlg-actions button{
+    border-radius:8px;
+    padding:9px 16px;
+    font-size:14px;
+    border:1px solid #443f60;
+    background:var(--panel-2);
+    color:var(--text);
+  }
+  .dlg-actions button.primary{background:var(--accent);color:#1a1428;border:none;font-weight:700;}
+  .hint{font-size:11px;color:var(--text-dim);}
+</style>
+</head>
+<body>
+
+<header>
+  <div>
+    <h1 id="charName">Roleplay</h1>
+    <div class="sub" id="modelLabel">not configured</div>
+  </div>
+  <div style="display:flex;gap:6px;">
+    <button id="resetBtn" title="New chat">↺</button>
+    <button id="settingsBtn" title="Settings">⚙</button>
+  </div>
+</header>
+
+<div id="chat">
+  <div id="empty">Set your Gemini API key and character in Settings (⚙), then start typing.</div>
+</div>
+
+<form id="composer">
+  <textarea id="input" rows="1" placeholder="Say something…" autofocus></textarea>
+  <button id="send" type="submit">Send</button>
+</form>
+
+<dialog id="settingsDlg">
+  <div class="dlg-body">
+    <h2>Settings</h2>
+    <div>
+      <label for="apiKey">Gemini API key</label>
+      <input type="password" id="apiKey" placeholder="AIza…">
+      <div class="hint">Stored only in this browser (localStorage), never sent anywhere but Google's API.</div>
+    </div>
+    <div class="row">
+      <div>
+        <label for="model">Model</label>
+        <input type="text" id="model" placeholder="gemini-2.5-flash">
+      </div>
+      <div>
+        <label for="temp">Temperature</label>
+        <input type="text" id="temp" placeholder="1.0">
+      </div>
+    </div>
+    <div>
+      <label for="charNameInput">Character name (for the title bar)</label>
+      <input type="text" id="charNameInput" placeholder="e.g. Kaelen">
+    </div>
+    <div>
+      <label for="persona">Persona / system instructions</label>
+      <textarea id="persona" placeholder="Describe who the AI should play, their personality, speech style, the scenario, boundaries, etc."></textarea>
+    </div>
+    <div class="dlg-actions">
+      <button type="button" id="closeSettings">Cancel</button>
+      <button type="button" id="saveSettings" class="primary">Save</button>
+    </div>
+  </div>
+</dialog>
+
+<script>
+const $ = id => document.getElementById(id);
+const chatEl = $('chat'), inputEl = $('input'), form = $('composer'), sendBtn = $('send');
+const dlg = $('settingsDlg');
+
+let settings = JSON.parse(localStorage.getItem('rp_settings') || '{}');
+let messages = JSON.parse(localStorage.getItem('rp_messages') || '[]');
+
+function saveMessages(){ localStorage.setItem('rp_messages', JSON.stringify(messages)); }
+function saveSettingsToStorage(){ localStorage.setItem('rp_settings', JSON.stringify(settings)); }
+
+function applyHeader(){
+  $('charName').textContent = settings.charName || 'Roleplay';
+  $('modelLabel').textContent = settings.apiKey
+    ? (settings.model || 'gemini-2.5-flash')
+    : 'not configured — tap ⚙';
+}
+
+function bubble(role, text){
+  const d = document.createElement('div');
+  d.className = 'msg ' + role;
+  d.textContent = text;
+  return d;
+}
+
+function render(){
+  chatEl.innerHTML = '';
+  if(messages.length === 0){
+    const empty = document.createElement('div');
+    empty.id = 'empty';
+    empty.textContent = settings.apiKey
+      ? 'Say something to start the scene.'
+      : 'Set your Gemini API key and character in Settings (⚙), then start typing.';
+    chatEl.appendChild(empty);
+    return;
+  }
+  messages.forEach(m => chatEl.appendChild(bubble(m.role === 'user' ? 'user' : 'model', m.text)));
+  chatEl.scrollTop = chatEl.scrollHeight;
+}
+
+function openSettings(){
+  $('apiKey').value = settings.apiKey || '';
+  $('model').value = settings.model || 'gemini-2.5-flash';
+  $('temp').value = settings.temp || '1.0';
+  $('charNameInput').value = settings.charName || '';
+  $('persona').value = settings.persona || '';
+  dlg.showModal();
+}
+$('settingsBtn').onclick = openSettings;
+$('closeSettings').onclick = () => dlg.close();
+$('saveSettings').onclick = () => {
+  settings.apiKey = $('apiKey').value.trim();
+  settings.model = $('model').value.trim() || 'gemini-2.5-flash';
+  settings.temp = parseFloat($('temp').value) || 1.0;
+  settings.charName = $('charNameInput').value.trim();
+  settings.persona = $('persona').value;
+  saveSettingsToStorage();
+  applyHeader();
+  render();
+  dlg.close();
+};
+
+$('resetBtn').onclick = () => {
+  if(confirm('Start a new chat? This clears the current conversation.')){
+    messages = [];
+    saveMessages();
+    render();
+  }
+};
+
+inputEl.addEventListener('input', () => {
+  inputEl.style.height = 'auto';
+  inputEl.style.height = Math.min(inputEl.scrollHeight, 120) + 'px';
+});
+
+form.addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const text = inputEl.value.trim();
+  if(!text) return;
+  if(!settings.apiKey){ openSettings(); return; }
+
+  messages.push({role:'user', text});
+  inputEl.value = '';
+  inputEl.style.height = 'auto';
+  saveMessages();
+  render();
+
+  sendBtn.disabled = true;
+  const pending = bubble('model pending', '…');
+  chatEl.appendChild(pending);
+  chatEl.scrollTop = chatEl.scrollHeight;
+
+  try{
+    const contents = messages.map(m => ({
+      role: m.role === 'user' ? 'user' : 'model',
+      parts: [{ text: m.text }]
+    }));
+    const body = {
+      contents,
+      generationConfig: { temperature: settings.temp || 1.0 }
+    };
+    if(settings.persona){
+      body.systemInstruction = { parts: [{ text: settings.persona }] };
+    }
+
+    const res = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(settings.model)}:generateContent`,
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-goog-api-key': settings.apiKey
+        },
+        body: JSON.stringify(body)
+      }
+    );
+    const data = await res.json();
+    pending.remove();
+
+    if(!res.ok){
+      const msg = data?.error?.message || `Request failed (${res.status})`;
+      chatEl.appendChild(bubble('error', msg));
+    } else {
+      const reply = data?.candidates?.[0]?.content?.parts?.map(p => p.text || '').join('') || '(empty response)';
+      messages.push({role:'model', text: reply});
+      saveMessages();
+      render();
+    }
+  } catch(err){
+    pending.remove();
+    chatEl.appendChild(bubble('error', 'Network error: ' + err.message));
+  } finally {
+    sendBtn.disabled = false;
+    chatEl.scrollTop = chatEl.scrollHeight;
+  }
+});
+
+applyHeader();
+render();
+
+if('serviceWorker' in navigator){
+  navigator.serviceWorker.register('sw.js').catch(()=>{});
+}
+</script>
+</body>
+</html>

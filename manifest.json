@@ -1,0 +1,13 @@
+{
+  "name": "Roleplay Chat",
+  "short_name": "Roleplay",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#161320",
+  "theme_color": "#161320",
+  "icons": [
+    { "src": "icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable" }
+  ]
+}
